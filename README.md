@@ -108,6 +108,54 @@ cursor-chat-export -o /path/to/output/dir --db /path/to/state.vscdb
 | `--min-messages N` | Skip chats with fewer than N messages (default: 1) |
 | `--db PATH` | Path to Cursor's `state.vscdb` (auto-detected if omitted) |
 
+## Automatic periodic export (systemd)
+
+The repo ships a systemd **timer + oneshot service** pair in `systemd/` that runs incremental exports on a schedule (hourly by default).
+
+### Install
+
+1. Copy units to your user systemd directory:
+  ```bash
+  mkdir -p ~/.config/systemd/user
+  cp systemd/cursor-chat-export.{service,timer} ~/.config/systemd/user/
+  ```
+
+2. Optionally edit the output directory (default: ~/cursor-chats):
+  ```bash
+  vim ~/.config/systemd/user/cursor-chat-export.service
+  ```
+
+3. Enable and start the timer:
+  ```bash
+  systemctl --user daemon-reload
+  systemctl --user enable --now cursor-chat-export.timer
+  ```
+
+### Verify
+
+```bash
+# Check the timer is active
+systemctl --user list-timers cursor-chat-export.timer
+
+# Run once manually to test
+systemctl --user start cursor-chat-export.service
+
+# View logs
+journalctl --user -u cursor-chat-export.service
+```
+
+### Change schedule
+
+Edit `~/.config/systemd/user/cursor-chat-export.timer` and change `OnCalendar=`:
+
+```ini
+OnCalendar=hourly          # every hour (default)
+OnCalendar=*-*-* 06,18:00  # twice a day at 06:00 and 18:00
+OnCalendar=daily            # once a day at midnight
+```
+
+Then reload: `systemctl --user daemon-reload`.
+
 ## How it works
 
 ### Database location

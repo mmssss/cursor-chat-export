@@ -1,0 +1,9 @@
+[Unit]
+Description=Run cursor-chat-export periodically
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

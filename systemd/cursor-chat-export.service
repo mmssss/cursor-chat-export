@@ -1,0 +1,6 @@
+[Unit]
+Description=Export Cursor IDE chat transcripts to markdown (incremental)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/cursor-chat-export -o %h/cursor-chats
