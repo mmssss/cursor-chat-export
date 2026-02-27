@@ -5,6 +5,11 @@ import re
 from datetime import datetime, timezone
 
 
+def _escape_md(text: str) -> str:
+    """Escape markdown-special characters in plain text."""
+    return re.sub(r'([_*\[\]\\])', r'\\\1', text)
+
+
 def slugify(text: str, max_len: int = 50) -> str:
     """Convert text to a filesystem-safe slug."""
     if not text:
@@ -89,7 +94,7 @@ def _format_web_citations(citations: list[dict]) -> list[str]:
         title = c.get("title", "")
         url = c.get("url", "")
         if title:
-            lines.append(f"- [{title}]({url})")
+            lines.append(f"- [{_escape_md(title)}]({url})")
         else:
             lines.append(f"- {url}")
     lines.append("")
@@ -103,7 +108,7 @@ def format_markdown(chat: dict, messages: list[dict]) -> str:
     dt = datetime.fromtimestamp(created_at / 1000, tz=timezone.utc)
 
     lines = [
-        f"# {name}",
+        f"# {_escape_md(name)}",
         f"_Created on {dt.month}/{dt.day}/{dt.year} at {dt.strftime('%H:%M')} UTC | exported via cursor-chat-export_",
         "",
         "---",
@@ -115,7 +120,7 @@ def format_markdown(chat: dict, messages: list[dict]) -> str:
             role_label = "**User**"
         else:
             model = msg.get("model", "")
-            role_label = f"**AI** ({model})" if model else "**AI**"
+            role_label = f"**AI** ({_escape_md(model)})" if model else "**AI**"
         lines.append(role_label)
         lines.append("")
 
