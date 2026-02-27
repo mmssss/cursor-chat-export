@@ -11,42 +11,41 @@ Reads chat data directly from Cursor's internal SQLite database and writes each 
 
 ## Installation
 
-### No install
-
-Run directly from the project directory (`src/` layout):
+Install with [pipx](https://pipx.pypa.io) (recommended) so the command is available system-wide without polluting your Python environment:
 
 ```bash
-cd cursor-chat-export
-PYTHONPATH=src python -m cursor_chat_export -o /path/to/output/dir
+pipx install git+https://github.com/mmssss/cursor-chat-export.git
 ```
 
-### pipx
-
-Install as a CLI command available everywhere, without touching system Python:
+Or from a local clone:
 
 ```bash
+git clone https://github.com/mmssss/cursor-chat-export.git
 cd cursor-chat-export
-
 pipx install .
-
-# or editable (source changes take effect immediately)
-pipx install -e .
-
-# or directly from a git repo
-pipx install git+https://github.com/USER/cursor-chat-export.git
 ```
 
 Then from anywhere:
 
 ```bash
-cursor-chat-export -o /path/to/output/dir
+cursor-chat-export -o ~/cursor-chats
 ```
 
 Update / uninstall:
 
 ```bash
-pipx install . --force                       # update/reinstall from local checkout
+pipx upgrade cursor-chat-export              # pull latest from git
+pipx install . --force                       # reinstall from local checkout
 pipx uninstall cursor-chat-export            # remove
+```
+
+### Run without installing
+
+If you prefer not to install, run directly from the repo:
+
+```bash
+cd cursor-chat-export
+PYTHONPATH=src python -m cursor_chat_export -o ~/cursor-chats
 ```
 
 ## Filename format
