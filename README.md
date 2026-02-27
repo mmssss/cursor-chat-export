@@ -25,10 +25,12 @@ python -m cursor_chat_export -o /path/to/output/dir
 Install as a CLI command available everywhere, without touching system Python:
 
 ```bash
-pipx install ./cursor-chat-export
+cd cursor-chat-export
+
+pipx install .
 
 # or editable (source changes take effect immediately)
-pipx install -e ./cursor-chat-export
+pipx install -e .
 
 # or directly from a git repo
 pipx install git+https://github.com/USER/cursor-chat-export.git
