@@ -164,3 +164,6 @@ By default, the script scans the output directory for existing `.md` files and s
 
 When multiple chats produce the same filename (e.g., several untitled chats created in the same minute), a counter suffix is appended: `_2`, `_3`, etc.
 
+## TODO
+
+- [ ] Export images (in this case, create a subdirectory)
