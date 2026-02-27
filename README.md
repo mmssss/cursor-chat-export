@@ -13,11 +13,11 @@ Reads chat data directly from Cursor's internal SQLite database and writes each 
 
 ### No install
 
-Run directly from the project directory:
+Run directly from the project directory (`src/` layout):
 
 ```bash
 cd cursor-chat-export
-python -m cursor_chat_export -o /path/to/output/dir
+PYTHONPATH=src python -m cursor_chat_export -o /path/to/output/dir
 ```
 
 ### pipx
@@ -45,7 +45,7 @@ cursor-chat-export -o /path/to/output/dir
 Update / uninstall:
 
 ```bash
-pipx install ./cursor-chat-export --force   # update
+pipx install . --force                       # update/reinstall from local checkout
 pipx uninstall cursor-chat-export            # remove
 ```
 
