@@ -81,6 +81,79 @@ def load_chat_data(db_path: Path) -> list[dict]:
     return chats
 
 
+def _extract_selections(bubble: dict) -> list[dict]:
+    """Extract code selections from a bubble's context."""
+    ctx = bubble.get("context", {})
+    if not isinstance(ctx, dict):
+        return []
+    selections = []
+    for sel in ctx.get("selections", []):
+        raw_text = sel.get("rawText", "")
+        if not raw_text or not raw_text.strip():
+            continue
+        uri = sel.get("uri", {})
+        path = uri.get("path", "") if isinstance(uri, dict) else ""
+        rng = sel.get("range", {})
+        start_line = rng.get("selectionStartLineNumber")
+        end_line = rng.get("positionLineNumber")
+        selections.append({
+            "path": path,
+            "start_line": start_line,
+            "end_line": end_line,
+            "text": raw_text.strip(),
+        })
+    return selections
+
+
+def _extract_web_citations(bubble: dict) -> list[dict]:
+    """Extract web citations not already present in the response text."""
+    cites = bubble.get("webCitations", [])
+    if not cites:
+        return []
+    text = bubble.get("text", "")
+    seen_urls = set()
+    result = []
+    for c in cites:
+        if isinstance(c, dict):
+            url = c.get("url", "")
+            title = c.get("title", "")
+        elif isinstance(c, str):
+            url, title = c, ""
+        else:
+            continue
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        # Skip citations already inlined in the response text
+        if url in text:
+            continue
+        result.append({"url": url, "title": title})
+    return result
+
+
+def _extract_bubble(bubble: dict, btype: int) -> dict | None:
+    """Build a message dict from a bubble, including attachments."""
+    text = bubble.get("text", "")
+    if not text or not text.strip():
+        return None
+    role = "user" if btype == 1 else "assistant"
+    model = (bubble.get("modelInfo") or {}).get("modelName", "")
+    msg = {
+        "role": role,
+        "model": model,
+        "text": text.strip(),
+    }
+    if role == "user":
+        sels = _extract_selections(bubble)
+        if sels:
+            msg["selections"] = sels
+    else:
+        cites = _extract_web_citations(bubble)
+        if cites:
+            msg["web_citations"] = cites
+    return msg
+
+
 def extract_conversation(db_path: Path, chat: dict) -> list[dict]:
     """Extract conversation messages from a chat.
 
@@ -95,14 +168,9 @@ def extract_conversation(db_path: Path, chat: dict) -> list[dict]:
     if conversation and isinstance(conversation, list) and len(conversation) > 0:
         for bubble in conversation:
             btype = bubble.get("type")
-            text = bubble.get("text", "")
-            if text and text.strip():
-                model = (bubble.get("modelInfo") or {}).get("modelName", "")
-                messages.append({
-                    "role": "user" if btype == 1 else "assistant",
-                    "model": model,
-                    "text": text.strip(),
-                })
+            msg = _extract_bubble(bubble, btype)
+            if msg:
+                messages.append(msg)
         return messages
 
     # New format (v11+): headers + separate bubble keys
@@ -131,16 +199,76 @@ def extract_conversation(db_path: Path, chat: dict) -> list[dict]:
             except (json.JSONDecodeError, TypeError):
                 continue
 
-            text = bubble.get("text", "")
-            if text and text.strip():
-                model = (bubble.get("modelInfo") or {}).get("modelName", "")
-                messages.append({
-                    "role": "user" if btype == 1 else "assistant",
-                    "model": model,
-                    "text": text.strip(),
-                })
+            msg = _extract_bubble(bubble, btype)
+            if msg:
+                messages.append(msg)
 
     return messages
+
+
+_EXT_TO_LANG = {
+    ".py": "python", ".js": "javascript", ".ts": "typescript", ".tsx": "tsx",
+    ".jsx": "jsx", ".rs": "rust", ".go": "go", ".java": "java", ".c": "c",
+    ".cpp": "cpp", ".h": "cpp", ".hpp": "cpp", ".cs": "csharp", ".rb": "ruby",
+    ".jl": "julia", ".sh": "bash", ".bash": "bash", ".zsh": "bash",
+    ".sql": "sql", ".html": "html", ".css": "css", ".json": "json",
+    ".yaml": "yaml", ".yml": "yaml", ".toml": "toml", ".xml": "xml",
+    ".md": "markdown", ".r": "r", ".swift": "swift", ".kt": "kotlin",
+    ".lua": "lua", ".zig": "zig", ".nim": "nim", ".ex": "elixir",
+    ".exs": "elixir", ".erl": "erlang", ".hs": "haskell", ".ml": "ocaml",
+    ".php": "php", ".pl": "perl", ".scala": "scala", ".dart": "dart",
+}
+
+
+def _lang_from_path(path: str) -> str:
+    """Guess a markdown fence language tag from a file path."""
+    if not path:
+        return ""
+    ext = os.path.splitext(path)[1].lower()
+    return _EXT_TO_LANG.get(ext, "")
+
+
+def _format_selections(selections: list[dict]) -> list[str]:
+    """Format code selections as markdown blocks."""
+    lines = []
+    for sel in selections:
+        path = sel.get("path", "")
+        start = sel.get("start_line")
+        end = sel.get("end_line")
+        # Build the header line
+        parts = []
+        if path:
+            parts.append(f"`{path}`")
+        if start and end:
+            parts.append(f"lines {start}\u2013{end}")
+        elif start:
+            parts.append(f"line {start}")
+        header = " ".join(parts)
+        if header:
+            lines.append(f"_Selected code — {header}:_")
+        else:
+            lines.append("_Selected code:_")
+        lines.append("")
+        lang = _lang_from_path(path)
+        lines.append(f"```{lang}")
+        lines.append(sel["text"])
+        lines.append("```")
+        lines.append("")
+    return lines
+
+
+def _format_web_citations(citations: list[dict]) -> list[str]:
+    """Format web citations as a markdown list."""
+    lines = ["_Web sources:_", ""]
+    for c in citations:
+        title = c.get("title", "")
+        url = c.get("url", "")
+        if title:
+            lines.append(f"- [{title}]({url})")
+        else:
+            lines.append(f"- {url}")
+    lines.append("")
+    return lines
 
 
 def format_markdown(chat: dict, messages: list[dict]) -> str:
@@ -165,8 +293,18 @@ def format_markdown(chat: dict, messages: list[dict]) -> str:
             role_label = f"**AI** ({model})" if model else "**AI**"
         lines.append(role_label)
         lines.append("")
+
+        # Code selections (user messages only)
+        if msg.get("selections"):
+            lines.extend(_format_selections(msg["selections"]))
+
         lines.append(msg["text"])
         lines.append("")
+
+        # Web citations (assistant messages only)
+        if msg.get("web_citations"):
+            lines.extend(_format_web_citations(msg["web_citations"]))
+
         lines.append("---")
         lines.append("")
 
