@@ -9,6 +9,44 @@ Reads chat data directly from Cursor's internal SQLite database and writes each 
 - Python 3.10+
 - No external dependencies (uses only `sqlite3`, `json`, `re`, `argparse` from stdlib)
 
+## Installation
+
+### No install
+
+Run directly from the project directory:
+
+```bash
+cd cursor-chat-export
+python -m cursor_chat_export -o /path/to/output/dir
+```
+
+### pipx
+
+Install as a CLI command available everywhere, without touching system Python:
+
+```bash
+pipx install ./cursor-chat-export
+
+# or editable (source changes take effect immediately)
+pipx install -e ./cursor-chat-export
+
+# or directly from a git repo
+pipx install git+https://github.com/USER/cursor-chat-export.git
+```
+
+Then from anywhere:
+
+```bash
+cursor-chat-export -o /path/to/output/dir
+```
+
+Update / uninstall:
+
+```bash
+pipx install ./cursor-chat-export --force   # update
+pipx uninstall cursor-chat-export            # remove
+```
+
 ## Filename format
 
 ```
@@ -31,28 +69,28 @@ Examples:
 
 ```bash
 # Export all chats (incremental — skips already exported files)
-python export_cursor_chats.py -o /path/to/output/dir
+cursor-chat-export -o /path/to/output/dir
 
 # Export all chats including already exported ones
-python export_cursor_chats.py -o /path/to/output/dir --overwrite
+cursor-chat-export -o /path/to/output/dir --overwrite
 
 # Export only chats from the last 7 days
-python export_cursor_chats.py -o /path/to/output/dir --days 7
+cursor-chat-export -o /path/to/output/dir --days 7
 
 # Export chats matching a name pattern
-python export_cursor_chats.py -o /path/to/output/dir --filter "clickhouse backup"
+cursor-chat-export -o /path/to/output/dir --filter "clickhouse backup"
 
 # List chats without exporting
-python export_cursor_chats.py --list
+cursor-chat-export --list
 
 # Preview what would be exported
-python export_cursor_chats.py -o /path/to/output/dir --dry-run
+cursor-chat-export -o /path/to/output/dir --dry-run
 
-# Override minimum message count (default: 2)
-python export_cursor_chats.py -o /path/to/output/dir --min-messages 4
+# Override minimum message count (default: 1)
+cursor-chat-export -o /path/to/output/dir --min-messages 4
 
 # Use a custom database path
-python export_cursor_chats.py -o /path/to/output/dir --db /path/to/state.vscdb
+cursor-chat-export -o /path/to/output/dir --db /path/to/state.vscdb
 ```
 
 ## Options
@@ -130,7 +168,7 @@ Each exported file looks like this (matching Cursor's built-in export format):
 
 ```markdown
 # ClickHouse backup system
-_Created on 2/27/2026 at 07:29 UTC | exported via export_cursor_chats.py_
+_Created on 2/27/2026 at 07:29 UTC | exported via cursor-chat-export_
 
 ---
 
@@ -145,6 +183,18 @@ How to make backup of ClickHouse database?
 Great question. Here's the full picture: ...
 
 ---
+```
+
+## Project structure
+
+```
+cursor_chat_export/
+├── __init__.py        # Package marker
+├── __main__.py        # python -m cursor_chat_export entry point
+├── cli.py             # Argument parsing and export orchestration
+├── db.py              # SQLite database access and chat loading
+├── extract.py         # Bubble/selection/citation extraction
+└── formatting.py      # Markdown rendering, slugs, filenames
 ```
 
 ## License
