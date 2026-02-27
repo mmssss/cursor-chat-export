@@ -2,7 +2,7 @@
 Description=Run cursor-chat-export periodically
 
 [Timer]
-OnCalendar=hourly
+OnCalendar=*-*-* 04:00:00
 Persistent=true
 
 [Install]
